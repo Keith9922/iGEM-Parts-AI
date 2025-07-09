@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>iGEM Parts AI助手</title>
+  <style>
+    body {
+      width: 100%;
+      height: 100vh;
+      padding: 20px 16px 12px 16px;
+      font-family: 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+      margin: 0;
+      overflow-y: auto;
+      background: linear-gradient(135deg, #e3f0ff 0%, #f8fbff 100%);
+      box-sizing: border-box;
+      font-size: 16px;
+      color: #1e293b;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1741a6;
+      text-align: center;
+      margin-bottom: 18px;
+      margin-top: 0;
+      letter-spacing: 1px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin: 10px 0 16px 0;
+      padding: 12px;
+      border: 1.5px solid #b6c6e3;
+      border-radius: 8px;
+      resize: none;
+      font-size: 16px;
+      color: #1e293b;
+      box-sizing: border-box;
+      background: #fafdff;
+      transition: border 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 4px 0 rgba(36, 99, 235, 0.04);
+    }
+    textarea:focus {
+      border: 1.5px solid #2563eb;
+      box-shadow: 0 2px 8px 0 rgba(36, 99, 235, 0.10);
+      outline: none;
+    }
+    button {
+      width: 100%;
+      padding: 10px 0;
+      background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin: 6px 0;
+      box-shadow: 0 2px 8px 0 rgba(36, 99, 235, 0.08);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    }
+    button:hover:not(:disabled) {
+      background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 4px 16px 0 rgba(36, 99, 235, 0.13);
+    }
+    button:disabled {
+      background: #cbd5e1;
+      color: #fff;
+      cursor: not-allowed;
+      opacity: 0.7;
+      box-shadow: none;
+    }
+    .loading {
+      text-align: center;
+      display: none;
+      margin: 18px 0;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #e0e7ef;
+      border-top: 3px solid #2563eb;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .results {
+      margin-top: 14px;
+      max-height: 320px;
+      overflow-y: auto;
+      display: none;
+    }
+    .part-item {
+      border: none;
+      padding: 14px 16px 10px 16px;
+      margin-bottom: 14px;
+      border-radius: 12px;
+      background: #fff;
+      font-size: 15px;
+      box-shadow: 0 2px 12px 0 rgba(36, 99, 235, 0.07);
+      transition: box-shadow 0.2s, background 0.2s;
+      cursor: pointer;
+    }
+    .part-item:hover {
+      background: #f0f6ff;
+      box-shadow: 0 4px 20px 0 rgba(36, 99, 235, 0.13);
+    }
+    .part-name {
+      font-weight: bold;
+      color: #1741a6;
+      font-size: 18px;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    .part-id {
+      color: #d90429;
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .part-desc {
+      font-size: 15px;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .part-reason {
+      font-size: 13px;
+      color: #059669;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+    .part-usage {
+      font-size: 13px;
+      color: #b45309;
+      background-color: #fff7ed;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    #api-settings {
+      margin-top: 14px;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #f4f7fb;
+      box-shadow: 0 1px 6px 0 rgba(36, 99, 235, 0.04);
+      font-size: 15px;
+      color: #1e293b;
+    }
+    #api-settings select {
+      width: 100%;
+      padding: 8px;
+      margin: 7px 0;
+      border-radius: 5px;
+      border: 1px solid #cbd5e1;
+      font-size: 13px;
+      background: #fff;
+    }
+    #api-key-section {
+      display: flex;
+      align-items: center;
+      margin-top: 7px;
+    }
+    #api-key {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      font-size: 13px;
+      background: #fff;
+      transition: border 0.2s;
+    }
+    #api-key:focus {
+      border: 1.5px solid #2563eb;
+      outline: none;
+    }
+    #save-api-key {
+      width: 70px;
+      margin-left: 8px;
+      padding: 8px 0;
+      border-radius: 5px;
+      font-size: 13px;
+    }
+    #status {
+      font-size: 14px;
+      margin-top: 7px;
+      text-align: center;
+      padding: 7px 0;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: #1741a6;
+      font-weight: 500;
+    }
+    .tab {
+      overflow: hidden;
+      border: none;
+      background: #e0e7ef;
+      border-radius: 8px 8px 0 0;
+      margin-bottom: 0;
+      box-shadow: 0 1px 4px 0 rgba(36, 99, 235, 0.04);
+    }
+    .tab button {
+      background: inherit;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 10px 0;
+      width: 33.33%;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px 8px 0 0;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tab button:hover {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+    .tab button.active {
+      background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+      color: white;
+    }
+    .tabcontent {
+      display: none;
+      padding: 14px 10px 10px 10px;
+      border: none;
+      border-radius: 0 0 8px 8px;
+      background: #fff;
+      box-shadow: 0 1px 6px 0 rgba(36, 99, 235, 0.04);
+      font-size: 15px;
+      color: #1e293b;
+    }
+    .history-item {
+      border: none;
+      padding: 12px 14px 8px 14px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background: #f4f7fb;
+      font-size: 13px;
+      box-shadow: 0 1px 6px 0 rgba(36, 99, 235, 0.04);
+      transition: background 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .history-item:hover {
+      background: #e0e7ef;
+      box-shadow: 0 2px 12px 0 rgba(36, 99, 235, 0.10);
+    }
+    .history-question {
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+    .history-answer {
+      font-size: 10px;
+      color: #7f8c8d;
+    }
+    .history-count {
+      font-size: 9px;
+      color: #95a5a6;
+      text-align: right;
+      margin-top: 5px;
+    }
+    .history-parts {
+      margin-top: 5px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .history-part-item {
+      background-color: white;
+      padding: 4px;
+      margin: 2px 0;
+      border-radius: 2px;
+      border-left: 2px solid #3498db;
+      font-size: 10px;
+    }
+    .history-part-name {
+      font-weight: bold;
+      color: #2c3e50;
+      font-size: 10px;
+    }
+    .history-part-desc {
+      color: #7f8c8d;
+      font-size: 9px;
+      margin-top: 1px;
+    }
+    .quick-templates {
+      margin-bottom: 10px;
+    }
+    .quick-templates label {
+      font-size: 12px;
+      color: #2c3e50;
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .template-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .template-btn {
+      padding: 4px 8px;
+      background-color: #ecf0f1;
+      color: #2c3e50;
+      border: 1px solid #bdc3c7;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      transition: all 0.2s;
+    }
+    .template-btn:hover {
+      background-color: #3498db;
+      color: white;
+      border-color: #3498db;
+    }
+    .footer {
+      margin-top: 18px;
+      text-align: center;
+      color: #64748b;
+      font-size: 15px;
+      border-top: 1px solid #e0e7ef;
+      padding-top: 10px;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <h1>iGEM Parts AI助手</h1>
+  
+  <div class="tab">
+    <button id="search-tab" class="tablinks active">搜索</button>
+    <button id="settings-tab" class="tablinks">设置</button>
+    <button id="history-tab" class="tablinks">历史</button>
+  </div>
+  
+  <div id="search" class="tabcontent" style="display: block;">
+    <div class="quick-templates">
+      <label>快速输入模板:</label>
+      <div class="template-buttons">
+        <button class="template-btn" data-template="我需要一个可以在大肠杆菌中高效表达的启动子">启动子</button>
+        <button class="template-btn" data-template="我需要一个绿色荧光蛋白报告基因">荧光蛋白</button>
+        <button class="template-btn" data-template="我需要一个抗性基因用于筛选">抗性基因</button>
+        <button class="template-btn" data-template="我需要一个终止子">终止子</button>
+      </div>
+    </div>
+    
+    <textarea id="requirement" placeholder="请输入您的需求，例如：'我需要一个可以表达荧光蛋白的启动子'"></textarea>
+    <button id="search-button">🔍 搜索推荐元件</button>
+    
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>正在查询中，请稍候...</p>
+    </div>
+    
+    <div id="results" class="tab-content" style="display: none;">
+      <div id="results-content"></div>
+    </div>
+  </div>
+  
+  <div id="settings" class="tabcontent">
+    <div id="api-settings">
+      <label for="lang-switch">界面语言/Language:</label>
+      <select id="lang-switch">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+      </select>
+      <br/>
+      <label for="api-provider">选择AI提供商:</label>
+      <select id="api-provider">
+        <!-- 由JS动态填充 -->
+      </select>
+      
+      <label for="api-model">选择模型:</label>
+      <select id="api-model">
+        <!-- 由JS动态填充 -->
+      </select>
+      
+      <div id="api-key-container">
+        <label for="api-key" id="api-key-label">API密钥:</label>
+        <div id="api-key-section">
+          <input type="password" id="api-key" placeholder="输入API密钥">
+          <button id="save-api-key">保存</button>
+        </div>
+        <button id="test-api-button" style="margin-top: 5px; width: 100%; background-color: #27ae60;">测试API连接</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="history" class="tabcontent">
+    <div id="history-container">
+      <p style="text-align: center; color: #7f8c8d;">暂无历史记录</p>
+    </div>
+    <div class="history-count" id="history-count"></div>
+  </div>
+  
+  <div id="status"></div>
+
+  <div id="footer" class="footer">
+    By <a href="https://2025.igem.wiki/JLU-CP/" target="_blank" style="color:#1741a6;font-weight:none;text-decoration:none;">JLU-CP Team</a>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 
