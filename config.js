@@ -57,7 +57,7 @@ const CONFIG = {
         models: ["doubao-1.5", "doubao-1.6", "doubao-flash", "doubao-vision"],
         storageKey: "doubao_api_key",
         requiresKey: true, // 默认内置API可用
-        defaultApiKey: "db-sk-2e7e2b1e-xxxx-xxxx-xxxx-xxxxxxxxxxxx", // 示例内置key，实际请替换为官方公开体验key
+        defaultApiKey: "db-sk-2e7e2b1e-", // 示例内置key，实际请替换为官方公开体验key
         doc: "https://www.volcengine.com/docs/82379/1093066"
       }
     },
