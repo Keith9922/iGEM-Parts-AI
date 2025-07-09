@@ -18,7 +18,7 @@
 
 ### 1. 从GitHub拉取项目
 ```bash
-git clone https://github.com/你的团队/igem-parts-ai.git
+git clone https://github.com/Keith9922/iGEM-Parts-AI.git
 cd igem-parts-ai
 ```
 
