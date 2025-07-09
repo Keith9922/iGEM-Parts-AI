@@ -22,10 +22,7 @@ git clone https://github.com/Keith9922/iGEM-Parts-AI.git
 cd igem-parts-ai
 ```
 
-### 2. 准备插件图标
-将icon16.png、icon48.png、icon128.png放入images文件夹（可用AI生成或在线制作）。
-
-### 3. 加载插件到浏览器
+### 2. 加载插件到浏览器
 #### Chrome/Edge：
 1. 打开 `chrome://extensions/`
 2. 开启右上角“开发者模式”
@@ -38,15 +35,15 @@ cd igem-parts-ai
 3. 点击“临时载入附加组件”
 4. 选择 `manifest-firefox.json`
 
-### 4. 首次设置
+### 3. 首次设置
 1. 打开 [iGEM Parts Registry](https://parts.igem.org/)
-2. 点击浏览器工具栏插件图标，右侧侧边栏自动弹出
+2. 点击浏览器工具栏插件图标，选择侧边栏打开，右侧侧边栏自动弹出
 3. 进入“设置”页：
-   - 选择AI模型（如DeepSeek体验/豆包可直接用，OpenAI等需填API Key）
+   - 选择AI模型（如DeepSeek体验可直接用，OpenAI等需填API Key）
    - 选择模型类型（如gpt-3.5-turbo、deepseek-chat等）
    - 保存设置
 
-### 5. 使用AI推荐元件
+### 4. 使用AI推荐元件
 1. 切换到“搜索”页
 2. 可用快速模板一键填入常用需求，或手动输入如“我需要一个高效表达的启动子”
 3. 按回车或点“搜索推荐元件”
