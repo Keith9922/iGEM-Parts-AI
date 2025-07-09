@@ -74,19 +74,65 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // 提供商变更事件
-  apiProviderSelect.addEventListener('change', () => {
+  // ========== DeepSeek 体验版计数相关 ===========
+  const DEEPSEEK_TRIAL_MAX = 50;
+  const DEEPSEEK_TRIAL_COUNT_KEY = 'deepseek_trial_count';
+
+  // 检查体验版是否超限
+  async function isDeepseekTrialExceeded() {
+    const countObj = await new Promise(resolve => {
+      browserAPI.storage.local.get([DEEPSEEK_TRIAL_COUNT_KEY], resolve);
+    });
+    return (countObj[DEEPSEEK_TRIAL_COUNT_KEY] || 0) >= DEEPSEEK_TRIAL_MAX;
+  }
+
+  // 获取剩余次数
+  async function getDeepseekTrialRemain() {
+    const countObj = await new Promise(resolve => {
+      browserAPI.storage.local.get([DEEPSEEK_TRIAL_COUNT_KEY], resolve);
+    });
+    return DEEPSEEK_TRIAL_MAX - (countObj[DEEPSEEK_TRIAL_COUNT_KEY] || 0);
+  }
+
+  // 增加计数
+  async function incDeepseekTrialCount() {
+    const countObj = await new Promise(resolve => {
+      browserAPI.storage.local.get([DEEPSEEK_TRIAL_COUNT_KEY], resolve);
+    });
+    const newCount = (countObj[DEEPSEEK_TRIAL_COUNT_KEY] || 0) + 1;
+    await new Promise(resolve => {
+      browserAPI.storage.local.set({[DEEPSEEK_TRIAL_COUNT_KEY]: newCount}, resolve);
+    });
+  }
+
+  // ========== provider切换时处理体验版key和输入框 ===========
+  const origProviderChange = apiProviderSelect.onchange;
+  apiProviderSelect.addEventListener('change', async () => {
     const selectedProvider = apiProviderSelect.value;
     currentSettings.provider = selectedProvider;
-    
-    // 更新模型下拉列表
     updateModelOptions(selectedProvider);
-    
-    // 更新API密钥界面
     const providerConfig = CONFIG.api.providers[selectedProvider];
-    if (providerConfig.requiresKey) {
+    if (selectedProvider === 'deepseek_trial') {
+      if (await isDeepseekTrialExceeded()) {
+        // 超限，显示输入框，清空key
+        apiKeyContainer.style.display = 'block';
+        apiKeyLabel.textContent = `${providerConfig.name} API密钥:`;
+        apiKeyInput.value = '';
+        currentSettings.apiKey = '';
+        showStatus('免费体验已用完，请填写自己的API Key继续使用', 'red');
+        document.getElementById('deepseek-trial-remain').textContent = '免费体验已用完';
+      } else {
+        // 未超限，自动注入体验key并隐藏输入框
+        apiKeyContainer.style.display = 'none';
+        apiKeyInput.value = providerConfig.defaultApiKey;
+        currentSettings.apiKey = providerConfig.defaultApiKey;
+        const remain = await getDeepseekTrialRemain();
+        showStatus(`DeepSeek免费体验剩余次数：${remain}/50`, 'blue');
+        document.getElementById('deepseek-trial-remain').textContent = `剩余体验次数：${remain}/50`;
+      }
+    } else if (providerConfig.requiresKey) {
       apiKeyContainer.style.display = 'block';
       apiKeyLabel.textContent = `${providerConfig.name} API密钥:`;
-      // 加载该提供商的API密钥
       browserAPI.storage.local.get([providerConfig.storageKey], (result) => {
         if (result[providerConfig.storageKey]) {
           apiKeyInput.value = result[providerConfig.storageKey];
@@ -95,15 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     } else if (providerConfig.defaultApiKey) {
-      // deepseek等内置API，自动填充且隐藏输入框
       apiKeyContainer.style.display = 'none';
       apiKeyInput.value = providerConfig.defaultApiKey;
       currentSettings.apiKey = providerConfig.defaultApiKey;
     } else {
       apiKeyContainer.style.display = 'none';
     }
-    
-    // 保存设置
     saveCurrentSettings();
   });
   
@@ -270,6 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateUILanguage();
   
   // 修改搜索按钮事件，传递当前语言
+  // ========== 搜索按钮点击时，体验版计数逻辑 ===========
+  const origSearchClick = searchButton.onclick;
   searchButton.addEventListener('click', async () => {
     const requirement = requirementInput.value.trim();
     if (!requirement) {
@@ -280,18 +325,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const provider = currentSettings.provider;
     const model = currentSettings.model;
     const providerConfig = CONFIG.api.providers[provider];
-    
-    // 如果需要API密钥但未设置
-    if (providerConfig.requiresKey) {
-      if (!currentSettings.apiKey) {
-        // 尝试从存储获取
-        const result = await browserAPI.storage.local.get([providerConfig.storageKey]);
-        if (!result[providerConfig.storageKey]) {
-          showStatus(CONFIG.errors.noApiKey, 'red');
+    // 体验版超限强制要求填写key
+    if (provider === 'deepseek_trial') {
+      if (await isDeepseekTrialExceeded()) {
+        if (!apiKeyInput.value) {
+          showStatus('免费体验已用完，请填写自己的API Key继续使用', 'red');
           setActiveTab('settings');
           return;
         }
-        currentSettings.apiKey = result[providerConfig.storageKey];
       }
     }
     
@@ -345,6 +386,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // 显示成功信息
       showStatus(`✅ 成功找到 ${response.parts.length} 个推荐元件`, 'green');
       
+      // 体验版计数+1（仅用内置key时）
+      if (provider === 'deepseek_trial' && apiKeyInput.value === CONFIG.api.providers.deepseek_trial.defaultApiKey) {
+        await incDeepseekTrialCount();
+        const remain = await getDeepseekTrialRemain();
+        if (remain <= 0) {
+          showStatus('免费体验已用完，请填写自己的API Key继续使用', 'red');
+        } else {
+          showStatus(`DeepSeek免费体验剩余次数：${remain}/50`, 'blue');
+        }
+      }
+      
     } catch (error) {
       console.error('搜索过程中出错:', error);
       
@@ -368,9 +420,14 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 修改fetchAIRecommendations，传递lang
   async function fetchAIRecommendations(requirement, pageContent, lang) {
-    const provider = currentSettings.provider;
-    const model = currentSettings.model;
-    const providerConfig = CONFIG.api.providers[provider];
+    let provider = currentSettings.provider;
+    let model = currentSettings.model;
+    let providerConfig = CONFIG.api.providers[provider];
+    // deepseek_trial 兼容处理
+    if (provider === 'deepseek_trial' && providerConfig.realProvider) {
+      provider = providerConfig.realProvider;
+      providerConfig = CONFIG.api.providers[provider];
+    }
     const prompt = CONFIG.prompts.recommendParts(requirement, pageContent, lang);
     
     // 根据提供商类型使用不同的API调用方法
