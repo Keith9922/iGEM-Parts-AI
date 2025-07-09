@@ -23,10 +23,11 @@ const CONFIG = {
         name: "DeepSeek (免费体验50次)",
         endpoint: "https://api.deepseek.com/v1/chat/completions",
         models: ["deepseek-chat", "deepseek-coder"],
-        storageKey: "sk-26ff7f52cf1344859a010095286c17ba",
+        storageKey: "deepseek_trial_api_key",
         requiresKey: false,
         defaultApiKey: "sk-26ff7f52cf1344859a010095286c17ba", // 免费体验50次，超出需自填
-        doc: "https://platform.deepseek.com/docs"
+        doc: "https://platform.deepseek.com/docs",
+        realProvider: "deepseek"
       },
       huggingface: {
         name: "Hugging Face (免费版)",
